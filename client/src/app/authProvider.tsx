@@ -9,7 +9,7 @@ Amplify.configure({
       userPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || "",
       userPoolClientId:
         process.env.NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID || "",
-      client_secret: 're2to5t4ma873fjtvfpak9qt709veo3ii13vp2jpc44k8evv55o'
+      
     },
   },
 });
