@@ -8,7 +8,7 @@ Amplify.configure({
     Cognito: {
       userPoolId: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || "",
       userPoolClientId:
-        process.env.NEXT_PUBLIC_COGNITO_USER_POOL_CLIENT_ID || "",
+         "2tmo63rfmll3pqsva7l6tfq0qa",
       
     },
   },
