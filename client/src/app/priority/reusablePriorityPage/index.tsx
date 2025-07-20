@@ -1,99 +1,31 @@
-"use client";
-
-import { useAppSelector } from "@/app/redux";
-import Header from "@/components/Header";
-import ModalNewTask from "@/components/ModalNewTask";
-import TaskCard from "@/components/TaskCard";
-import { dataGridClassNames, dataGridSxStyles } from "@/lib/utils";
-import {
-  Priority,
-  Task,
-  useGetAuthUserQuery,
-  useGetTasksByUserQuery,
-} from "@/state/api";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import React, { useState } from "react";
-
-type Props = {
-  priority: Priority;
-};
-
-const columns: GridColDef[] = [
-  {
-    field: "title",
-    headerName: "Title",
-    width: 100,
-  },
-  {
-    field: "description",
-    headerName: "Description",
-    width: 200,
-  },
-  {
-    field: "status",
-    headerName: "Status",
-    width: 130,
-    renderCell: (params) => (
-      <span className="inline-flex rounded-full bg-green-100 px-2 text-xs font-semibold leading-5 text-green-800">
-        {params.value}
-      </span>
-    ),
-  },
-  {
-    field: "priority",
-    headerName: "Priority",
-    width: 75,
-  },
-  {
-    field: "tags",
-    headerName: "Tags",
-    width: 130,
-  },
-  {
-    field: "startDate",
-    headerName: "Start Date",
-    width: 130,
-  },
-  {
-    field: "dueDate",
-    headerName: "Due Date",
-    width: 130,
-  },
-  {
-    field: "author",
-    headerName: "Author",
-    width: 150,
-    renderCell: (params) => params.value.username || "Unknown",
-  },
-  {
-    field: "assignee",
-    headerName: "Assignee",
-    width: 150,
-    renderCell: (params) => params.value.username || "Unassigned",
-  },
-];
-
 const ReusablePriorityPage = ({ priority }: Props) => {
   const [view, setView] = useState("list");
   const [isModalNewTaskOpen, setIsModalNewTaskOpen] = useState(false);
 
-  const { data: currentUser } = useGetAuthUserQuery({});
-  const userId = currentUser?.userDetails?.userId ?? null;
+  const { data: currentUser, isLoading: isAuthLoading } = useGetAuthUserQuery({});
+  const userId = currentUser?.userDetails?.userId;
+
   const {
     data: tasks,
-    isLoading,
+    isLoading: isTasksLoading,
     isError: isTasksError,
-  } = useGetTasksByUserQuery(userId || 0, {
-    skip: userId === null,
+    error: tasksError,
+  } = useGetTasksByUserQuery(userId!, {
+    skip: !userId,
   });
 
   const isDarkMode = useAppSelector((state) => state.global.isDarkMode);
 
-  const filteredTasks = tasks?.filter(
-    (task: Task) => task.priority === priority,
-  );
+  const filteredTasks = tasks?.filter((task: Task) => task.priority === priority) || [];
 
-  if (isTasksError || !tasks) return <div>Error fetching tasks</div>;
+  if (isAuthLoading || (!userId && !isTasksLoading)) {
+    return <div>Loading user...</div>;
+  }
+
+  if (isTasksError) {
+    console.error("Error fetching tasks:", tasksError);
+    return <div>Error fetching tasks. Please check the console for details.</div>;
+  }
 
   return (
     <div className="m-5 p-4">
@@ -114,47 +46,41 @@ const ReusablePriorityPage = ({ priority }: Props) => {
       />
       <div className="mb-4 flex justify-start">
         <button
-          className={`px-4 py-2 ${
-            view === "list" ? "bg-gray-300" : "bg-white"
-          } rounded-l`}
+          className={`px-4 py-2 ${view === "list" ? "bg-gray-300" : "bg-white"} rounded-l`}
           onClick={() => setView("list")}
         >
           List
         </button>
         <button
-          className={`px-4 py-2 ${
-            view === "table" ? "bg-gray-300" : "bg-white"
-          } rounded-l`}
+          className={`px-4 py-2 ${view === "table" ? "bg-gray-300" : "bg-white"} rounded-l`}
           onClick={() => setView("table")}
         >
           Table
         </button>
       </div>
-      {isLoading ? (
+
+      {isTasksLoading ? (
         <div>Loading tasks...</div>
       ) : view === "list" ? (
         <div className="grid grid-cols-1 gap-4">
-          {filteredTasks?.map((task: Task) => (
-            <TaskCard key={task.id} task={task} />
-          ))}
+          {filteredTasks.length > 0 ? (
+            filteredTasks.map((task: Task) => <TaskCard key={task.id} task={task} />)
+          ) : (
+            <div>No tasks found with priority: {priority}</div>
+          )}
         </div>
       ) : (
-        view === "table" &&
-        filteredTasks && (
-          <div className="z-0 w-full">
-            <DataGrid
-              rows={filteredTasks}
-              columns={columns}
-              checkboxSelection
-              getRowId={(row) => row.id}
-              className={dataGridClassNames}
-              sx={dataGridSxStyles(isDarkMode)}
-            />
-          </div>
-        )
+        <div className="z-0 w-full">
+          <DataGrid
+            rows={filteredTasks}
+            columns={columns}
+            checkboxSelection
+            getRowId={(row) => row.id}
+            className={dataGridClassNames}
+            sx={dataGridSxStyles(isDarkMode)}
+          />
+        </div>
       )}
     </div>
   );
 };
-
-export default ReusablePriorityPage;
